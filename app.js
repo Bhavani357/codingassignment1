@@ -63,103 +63,119 @@ app.get("/todos/", async (request, response) => {
   let data = null;
   let getTodosQuery = "";
   const { search_q = "", priority, status, category } = request.query;
-  const result = false;
-  if (result) {
-    switch (true) {
-      case requestBody.status !== "TO DO" &&
-        requestBody.status !== "IN PROGRESS" &&
-        requestBody.status !== "DONE":
-        updateColumn = "Status";
-        break;
-      case requestBody.priority !== "HIGH" &&
-        requestBody.priority !== "MEDIUM" &&
-        requestBody.priority !== "LOW":
-        updateColumn = "Priority";
-        break;
-      case requestBody.category !== "WORK" &&
-        requestBody.category !== "HOME" &&
-        requestBody.category !== "LEARNING":
-        updateColumn = "Category";
-        break;
-    }
-    response.status(400);
-    response.send(`Invalid to ${updateColumn}`);
-  } else {
-    switch (true) {
-      case hasPriorityAndStatusProperties(request.query): //if this is true then below query is taken in the code
-        getTodosQuery = `
+
+  switch (true) {
+    case hasPriorityAndStatusProperties(request.query): //if this is true then below query is taken in the code
+      getTodosQuery = `
             SELECT
-                *
+                id,todo,priority,status,category,due_date as dueDate 
             FROM
                 todo 
             WHERE
                 todo LIKE '%${search_q}%'
                 AND status = '${status}'
                 AND priority = '${priority}';`;
-        break;
-      case hasCategoryAndStatusProperties(request.query): //if this is true then below query is taken in the code
-        getTodosQuery = `
+      break;
+    case hasCategoryAndStatusProperties(request.query): //if this is true then below query is taken in the code
+      getTodosQuery = `
             SELECT
-                *
+                id,todo,priority,status,category,due_date as dueDate 
             FROM
                 todo 
             WHERE
                 todo LIKE '%${search_q}%'
                 AND status = '${status}'
                 AND category = '${category}';`;
-        break;
-      case hasPriorityAndCategoryProperties(request.query): //if this is true then below query is taken in the code
-        getTodosQuery = `
+      break;
+    case hasPriorityAndCategoryProperties(request.query): //if this is true then below query is taken in the code
+      getTodosQuery = `
             SELECT
-                *
+                id,todo,priority,status,category,due_date as dueDate 
             FROM
                 todo 
             WHERE
                 todo LIKE '%${search_q}%'
                 AND category = '${category}'
                 AND priority = '${priority}';`;
-        break;
-      case hasPriorityProperty(request.query):
-        getTodosQuery = `
+      break;
+    case hasPriorityProperty(request.query):
+      getTodosQuery = `
             SELECT
-                *
+                id,todo,priority,status,category,due_date as dueDate 
             FROM
                 todo 
             WHERE
                 todo LIKE '%${search_q}%'
                 AND priority = '${priority}';`;
-        break;
-      case hasStatusProperty(request.query):
-        getTodosQuery = `
+      break;
+    case hasStatusProperty(request.query):
+      getTodosQuery = `
             SELECT
-                *
+                id,todo,priority,status,category,due_date as dueDate 
             FROM
                 todo 
             WHERE
                 todo LIKE '%${search_q}%'
                 AND status = '${status}';`;
-        break;
-      case hasCategoryProperty(request.query):
-        getTodosQuery = `
+      break;
+    case hasCategoryProperty(request.query):
+      getTodosQuery = `
             SELECT
-                *
+                id,todo,priority,status,category,due_date as dueDate 
             FROM
                 todo 
             WHERE
                 todo LIKE '%${search_q}%'
                 AND category = '${category}';`;
-        break;
-      default:
-        getTodosQuery = `
+      break;
+    default:
+      getTodosQuery = `
             SELECT
-                *
+                id,todo,priority,status,category,due_date as dueDate 
             FROM
                 todo 
             WHERE
                 todo LIKE '%${search_q}%';`;
-    }
-
-    data = await db.all(getTodosQuery);
-    response.send(data);
   }
+
+  data = await db.all(getTodosQuery);
+  response.send(data);
 });
+
+app.get("/todos/:todoId/", async (request, response) => {
+  const { todoId } = request.params;
+  const getSpecifiedTodo = `
+    SELECT id,todo,priority,status,category,due_date as dueDate FROM todo WHERE id = '${todoId}';`;
+  const getTodo = await db.get(getSpecifiedTodo);
+  response.send(getTodo);
+});
+
+app.get("/agenda/", async (request, response) => {
+  const { date } = request.query;
+  //const formattedDate = format(new Date(date), "yyyy-MM-dd");
+  const allTodosAtSpecifiedDate = `
+    SELECT id,todo,priority,status,category,due_date as dueDate 
+    FROM todo 
+    WHERE due_date = '${date}';`;
+  const todosArray = await db.all(allTodosAtSpecifiedDate);
+  response.send(todosArray);
+});
+
+app.post("/todos/", async (request, response) => {
+  const { id, todo, priority, status, category, dueDate } = request.body;
+  //format(new Date(2014, 1, 11), "MM/dd/yyyy");
+
+  const postTodo = `
+  INSERT INTO todo(id,todo,priority,status,category,due_date)
+  VALUES (
+      '${id}',
+      '${todo}',
+      '${priority}',
+      '${status}',
+      '${category}',
+      '${dueDate}'
+  );`;
+  const result = await db.run(postTodo);
+  response.send("Todo Successfully Added");
+});
+
