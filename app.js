@@ -179,3 +179,66 @@ app.post("/todos/", async (request, response) => {
   response.send("Todo Successfully Added");
 });
 
+app.delete("/todos/:todoId/", async (request, response) => {
+  const { todoId } = request.params;
+  const deleteTodo = `
+    DELETE FROM todo WHERE id = '${todoId}';`;
+  const updatedTodo = await db.run(deleteTodo);
+  response.send("Todo Deleted");
+});
+
+app.put("/todos/:todoId/", async (request, response) => {
+  const requestBody = request.body;
+  const { todoId } = request.params;
+  let updateColumn = "";
+  switch (true) {
+    case requestBody.status !== undefined:
+      updateColumn = "Status";
+      break;
+    case requestBody.priority !== undefined:
+      updateColumn = "Priority";
+      break;
+    case requestBody.todo !== undefined:
+      updateColumn = "Todo";
+      break;
+    case requestBody.category !== undefined:
+      updateColumn = "Category";
+      break;
+    case requestBody.dueDate !== undefined:
+      updateColumn = "Due Date";
+      break;
+  }
+  const previousTodoQuery = `
+    SELECT 
+      * 
+    FROM 
+      todo
+    WHERE 
+      id = ${todoId};
+      `;
+  const result = await db.get(previousTodoQuery);
+
+  const {
+    todo_p = result.todo,
+    priority_p = result.priority,
+    status_p = result.status,
+    category_p = result.category,
+    dueDate_p = result.due_date,
+  } = request.body;
+  const updateTodoQuery = `
+  UPDATE 
+     todo
+  SET 
+    todo='${todo_p}',
+    priority='${priority_p}',
+    status = '${status_p}',
+    category = '${category_p}',
+    due_date = '${dueDate_p}'
+  WHERE 
+    id = ${todoId};
+    `;
+  await db.run(updateTodoQuery);
+  response.send(`${updateColumn} Updated`);
+});
+
+
